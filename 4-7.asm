@@ -1,16 +1,16 @@
 # Execution begins at address 0
-    .pos 0
+    # .pos 0
     irmovq stack, %rsp
     call main
     halt
 
 # Array of 4 elements
-    .align 8
+    # .align 8
 array:
-    .quad 0x000d000d000d
-    .quad 0x00c000c000c0
-    .quad 0x0b000b000b00
-    .quad 0xa000a000a000
+    # .quad 0x000d000d000d
+    # .quad 0x00c000c000c0
+    # .quad 0x0b000b000b00
+    # .quad 0xa000a000a000
 
 main:
     irmovq array, %rdi
@@ -36,5 +36,5 @@ test:
     ret                                 # Return
 
 # Stack starts here and grows to lower addresses
-    .pos 0x200
+    # .pos 0x200
 stack:

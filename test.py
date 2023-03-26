@@ -1,8 +1,8 @@
-def bige2lite(a:int)->str:
-    tmp = "%0.16x"%a
-    res = ''
-    for i in range(0, 16, 2):
-        res += tmp[14 - i:16 - i]
-    return res
-
-print(bige2lite(123456789))
+a = input()
+match a:
+    case '1' | '2' | '3' | '4':
+        print('nums')
+    case 'a' | 'b' | 'c':
+        print('alphabet')
+    case _:
+        print("unknown option")
