@@ -208,9 +208,7 @@ def get_sentences(codes: list) -> list:
                     # 同时包含伪指令quad,所以做个判断
                     if codes[i] == 'quad':
                         length = 8
-                        print(codes[i+1])
                         imm = str2dec_or_hex(codes[i+1])
-                        print(imm)
                         i += 1
                     else:
                         length = 9
@@ -293,6 +291,25 @@ def get_hexcodes(sentences: list) -> list:
     return hexcodes
 
 
+def after_process(hexcodes: list) -> list:
+    res = []
+    i = 0
+    while i < len(hexcodes):
+        if hexcodes[i] == '10':
+            j = i
+            while j < len(hexcodes) and hexcodes[j] == '10':
+                j += 1
+            num = j - i
+            for i in range(num // 16):
+                res.append('10'*16)
+            res.append('10'*(num % 16))
+            i = j
+        else:
+            res.append(hexcodes[i])
+            i += 1
+    return res
+
+
 def main():
     filename = input("汇编文件名:")
     f = open(filename, 'r')
@@ -301,19 +318,14 @@ def main():
     processed_code = pre_process([i.split() for i in code.split('\n')])
     sentences = get_sentences(processed_code)
     hexcodes = get_hexcodes(sentences)
-    # print(hexcodes)
-    # print(sentences)
+    result = after_process(hexcodes)
     f.close
     of = open(filename.split('.')[0] + ".bin", 'w')
-    for i in hexcodes:
+
+    for i in result:
         of.write(i + '\n')
     of.close()
     print('已写入%s.' % (filename.split('.')[0] + ".bin"))
-    # pre_process(code.split())
-
-    # a = code.split('\n')
-    # for i in a:
-    #     print(i.split())
 
 
 if __name__ == '__main__':
