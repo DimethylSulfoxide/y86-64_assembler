@@ -1,9 +1,9 @@
 import re
 
 directives = {
-    ".pos": "i",
-    ".align": "i",
-    ".quad": "i",
+    "pos": ["i", ""],
+    "align": ["i", ""],
+    "quad": ["i", ""],
 }
 
 instructions = {
@@ -35,6 +35,8 @@ instructions = {
     "pushq": ["rr", "a0"],
     "popq": ["rr", "b0"]
 }
+
+instructions |= directives
 
 regs2num = {
     "rax": 0, "rcx": 1, "rdx": 2, "rbx": 3, "rsp": 4, "rbp": 5, "rsi": 6, "rdi": 7,
@@ -80,7 +82,8 @@ def remove_comments(a: str) -> str:
 
 
 def remove_symbols(a: str) -> str:
-    return re.sub(r'[\(\),$%]', '', a)
+    return re.sub(r'[\(\)\.,$%]', '', a)
+
 
 def bige2lite(a: int) -> str:
     tmp = "%0.16x" % a
@@ -89,7 +92,8 @@ def bige2lite(a: int) -> str:
         res += tmp[14 - i: 16 - i]
     return res
 
-def is_str_10or16based_num(a:str)->bool:
+
+def is_str_10or16based_num(a: str) -> bool:
     try:
         int(a)
         return True
@@ -101,6 +105,20 @@ def is_str_10or16based_num(a:str)->bool:
     except ValueError:
         pass
     return False
+
+
+def str2dec_or_hex(a: str) -> int:
+    try:
+        res = int(a)
+        return res
+    except ValueError:
+        pass
+    try:
+        res = int(a, 16)
+        return res
+    except ValueError:
+        pass
+
 
 def pre_process(codes: list) -> list:
     # 只需要特殊处理irmovq和push pop和rm(mr)movq
@@ -121,23 +139,20 @@ def pre_process(codes: list) -> list:
                 case "rmmovq":
                     if len(line) == 4:
                         newline = [line[0], line[1], line[3], line[2]]
-                    else :
+                    else:
                         newline = [line[0], line[1], line[2], '0']
 
                 case "mrmovq":
                     if len(line) == 4:
                         newline = [line[0], line[2], line[3], line[1]]
-                    else :
+                    else:
                         newline = [line[0], line[1], line[2], '0']
-                
-                case others:
-                    newline = line
 
+                case _:
+                    newline = line
 
             res.extend(newline)
     return res
-
-
 
 
 def get_sentences(codes: list) -> list:
@@ -145,6 +160,29 @@ def get_sentences(codes: list) -> list:
     i = 0
     while i < len(codes):
         current_address = sentences[-1].end_address if sentences else 0
+        match codes[i]:
+            case 'pos':
+                tmp = str2dec_or_hex(codes[i+1])
+                for j in range(current_address, tmp):
+                    sentences.append(sentence(j, 1, '', 'nop'))
+                current_address = tmp
+                i += 2
+                continue
+
+            case 'align':
+                tmp = 0
+                step = str2dec_or_hex(codes[i+1])
+                while tmp < current_address:
+                    tmp += step
+                for j in range(current_address, tmp):
+                    sentences.append(sentence(j, 1, '', 'nop'))
+                current_address = tmp
+                i += 2
+                continue
+
+            case _:
+                pass
+
         if codes[i][-1] == ':':  # label
             sentences.append(sentence(current_address, 0, codes[i]))
         else:  # instructions
@@ -167,9 +205,17 @@ def get_sentences(codes: list) -> list:
                     i += 2
 
                 case 'i':  # j系列和call, 涉及到标签转换为地址
-                    length = 9
-                    label_name = codes[i+1]
-                    i += 1
+                    # 同时包含伪指令quad,所以做个判断
+                    if codes[i] == 'quad':
+                        length = 8
+                        print(codes[i+1])
+                        imm = str2dec_or_hex(codes[i+1])
+                        print(imm)
+                        i += 1
+                    else:
+                        length = 9
+                        label_name = codes[i+1]
+                        i += 1
 
                 case 'rri':  # irmovq同样涉及标签转地址
                     length = 10
@@ -177,11 +223,8 @@ def get_sentences(codes: list) -> list:
                     r2 = codes[i+2]
                     if codes[i] == "irmovq" and not is_str_10or16based_num(codes[i+3]):
                         label_name = codes[i+3]
-                    else: 
-                        if codes[i+3][0:2] == '0x':
-                            imm = int(codes[i+3], 16)
-                        else:
-                            imm = int(codes[i+3])
+                    else:
+                        imm = str2dec_or_hex(codes[i+3])
                     i += 3
 
             sentences.append(sentence(current_address, length,
@@ -189,7 +232,6 @@ def get_sentences(codes: list) -> list:
 
         i += 1
     return sentences
-    pass
 
 
 def get_hexcodes(sentences: list) -> list:
@@ -210,20 +252,23 @@ def get_hexcodes(sentences: list) -> list:
 
                 case 'i':  # j系列和call, 涉及到标签转换为地址
                     target = 0
-                    find = False
-                    for j in sentences:
-                        if not j.islabel:
-                            continue
-                        else:
-                            if j.label_name == i.label_name:
-                                target = j.start_address
-                                find = True
-                    if not find:
-                        print("No such label named %s." % i.label_name)
+                    if i.label_name:
+                        find = False
+                        for j in sentences:
+                            if not j.islabel:
+                                continue
+                            else:
+                                if j.label_name == i.label_name:
+                                    target = j.start_address
+                                    find = True
+                        if not find:
+                            print("No such label named %s." % i.label_name)
+                    else:
+                        # quad
+                        target = i.imm
                     hcode += bige2lite(target)
-                    pass
 
-                case 'rri': # irmovq同样可能涉及标签转地址
+                case 'rri':  # irmovq同样可能涉及标签转地址
                     hcode += "%0.1x" % (regs2num[i.r1])
                     hcode += "%0.1x" % (regs2num[i.r2])
                     if i.instr_name == 'irmovq' and i.label_name:
@@ -263,7 +308,7 @@ def main():
     for i in hexcodes:
         of.write(i + '\n')
     of.close()
-    print('已写入%s.'%(filename.split('.')[0] + ".bin"))
+    print('已写入%s.' % (filename.split('.')[0] + ".bin"))
     # pre_process(code.split())
 
     # a = code.split('\n')
