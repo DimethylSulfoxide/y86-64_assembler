@@ -127,7 +127,7 @@ def pre_process(codes: list) -> list:
         if not line:
             continue
         else:
-            print(line)
+            # print(line)
             newline = []
             match line[0]:
                 case "irmovq":
@@ -151,7 +151,7 @@ def pre_process(codes: list) -> list:
 
                 case _:
                     newline = line
-            print(newline)
+            # print(newline)
             res.extend(newline)
     return res
 
@@ -316,7 +316,7 @@ def main():
     f = open(filename, 'r')
     code = remove_comments(f.read())
     code = remove_symbols(code)
-    print(code)
+    # print(code)
     processed_code = pre_process([i.split() for i in code.split('\n')])
     sentences = get_sentences(processed_code)
     hexcodes = get_hexcodes(sentences)
