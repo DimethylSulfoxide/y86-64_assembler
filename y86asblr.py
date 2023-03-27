@@ -82,7 +82,7 @@ def remove_comments(a: str) -> str:
 
 
 def remove_symbols(a: str) -> str:
-    return re.sub(r'[\(\)\.,$%]', '', a)
+    return re.sub(r'[\(\)\.,$%]', ' ', a)
 
 
 def bige2lite(a: int) -> str:
@@ -127,14 +127,15 @@ def pre_process(codes: list) -> list:
         if not line:
             continue
         else:
-            # print(line)
+            print(line)
             newline = []
             match line[0]:
                 case "irmovq":
                     newline = ['irmovq', 'nil', line[-1], line[1]]
 
                 case "pushq" | "popq":
-                    newline = line.append('nil')
+                    line.append('nil')
+                    newline = line
 
                 case "rmmovq":
                     if len(line) == 4:
@@ -150,7 +151,7 @@ def pre_process(codes: list) -> list:
 
                 case _:
                     newline = line
-
+            print(newline)
             res.extend(newline)
     return res
 
@@ -315,6 +316,7 @@ def main():
     f = open(filename, 'r')
     code = remove_comments(f.read())
     code = remove_symbols(code)
+    print(code)
     processed_code = pre_process([i.split() for i in code.split('\n')])
     sentences = get_sentences(processed_code)
     hexcodes = get_hexcodes(sentences)
