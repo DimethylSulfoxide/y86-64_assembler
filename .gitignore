@@ -1,3 +1,4 @@
 *.exe
 *.bin
 test.py
+class*

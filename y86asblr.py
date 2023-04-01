@@ -86,7 +86,11 @@ def remove_symbols(a: str) -> str:
 
 
 def bige2lite(a: int) -> str:
-    tmp = "%0.16x" % a
+    # tmp = "%0.16x" % a
+    if a > 9223372036854775807 or a < -9223372036854775808:
+        print("immediate %d out of range of int64."%a)
+        exit(1)
+    tmp = hex(int(bin(a & 0xffff_ffff_ffff_ffff), 2))[2:]
     res = ''
     for i in range(0, 16, 2):
         res += tmp[14 - i: 16 - i]
@@ -316,8 +320,9 @@ def main():
     f = open(filename, 'r')
     code = remove_comments(f.read())
     code = remove_symbols(code)
-    # print(code)
+    print(code)
     processed_code = pre_process([i.split() for i in code.split('\n')])
+    print(processed_code)
     sentences = get_sentences(processed_code)
     hexcodes = get_hexcodes(sentences)
     result = after_process(hexcodes)
