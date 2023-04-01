@@ -86,11 +86,14 @@ def remove_symbols(a: str) -> str:
 
 
 def bige2lite(a: int) -> str:
-    # tmp = "%0.16x" % a
     if a > 9223372036854775807 or a < -9223372036854775808:
         print("immediate %d out of range of int64."%a)
         exit(1)
-    tmp = hex(int(bin(a & 0xffff_ffff_ffff_ffff), 2))[2:]
+    if a >= 0:
+        tmp = "%0.16x" % a
+    else:
+        tmp = hex(int(bin(a & 0xffff_ffff_ffff_ffff), 2))[2:]
+        
     res = ''
     for i in range(0, 16, 2):
         res += tmp[14 - i: 16 - i]
